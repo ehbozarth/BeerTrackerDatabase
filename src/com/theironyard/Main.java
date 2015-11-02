@@ -96,6 +96,7 @@ public class Main {
                 })
         );//End of Spark.post() "/edit-beer"
 
+        conn.close();
     }//End of Main Method
 
     static void insertBeer(Connection conn, String beerName, String beerType) throws SQLException {

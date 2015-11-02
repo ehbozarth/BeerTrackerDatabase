@@ -5,17 +5,27 @@ import spark.Session;
 import spark.Spark;
 import spark.template.mustache.MustacheTemplateEngine;
 
+import java.beans.*;
+import java.sql.*;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Main {
 
-    public static void main(String[] args) {
-        ArrayList<Beer> beers = new ArrayList();
+    public static void main(String[] args) throws SQLException {
+
+        Connection conn = DriverManager.getConnection("jdbc:h2:./main");
+        Statement stmt = conn.createStatement();
+        stmt.execute("CREATE TABLE IF NOT EXISTS beers (name VARCHAR, type VARCHAR)");
+
+
+
         Spark.get(
                 "/",
                 ((request, response) -> {
                     Session session = request.session();
+                    ArrayList<Beer> beers = selectBeer(conn);
                     String username = session.attribute("username");
                     if (username == null) {
                         return new ModelAndView(new HashMap(), "not-logged-in.html");
@@ -41,10 +51,9 @@ public class Main {
                 "/create-beer",
                 ((request, response) -> {
                     Beer beer = new Beer();
-                    beer.id = beers.size() + 1;
                     beer.name = request.queryParams("beername");
                     beer.type = request.queryParams("beertype");
-                    beers.add(beer);
+                    insertBeer(conn, beer.name, beer.type);
                     response.redirect("/");
                     return "";
                 })
@@ -55,10 +64,7 @@ public class Main {
                     String id = request.queryParams("beerid");
                     try {
                         int idNum = Integer.valueOf(id);
-                        beers.remove(idNum-1);
-                        for (int i = 0; i < beers.size(); i++) {
-                            beers.get(i).id = i + 1;
-                        }
+                        deleteBeer(conn, idNum);
                     } catch (Exception e) {
 
                     }
@@ -66,5 +72,63 @@ public class Main {
                     return "";
                 })
         );
+
+        Spark.post(
+                "/edit-beer",
+                ((request, response) -> {
+                    String editBeer = request.queryParams("beerid");
+                    try {
+                        PreparedStatement stmt2 = conn.prepareStatement("UPDATE beers SET name = ? AND type = ? WHERE ROWNUM = ?");
+                        String beerName = request.queryParams("beername");
+                        String beerType = request.queryParams("beertype");
+                        int beerNum = Integer.valueOf(editBeer);
+                        updateBeer(conn,beerName, beerType, beerNum );
+                        stmt2.execute();
+
+                    } catch (Exception e){
+
+                    }
+                    response.redirect("/");
+                    return "";
+                })
+        );
+    }//End of Main Method
+
+    static void insertBeer(Connection conn, String beerName, String beerType) throws SQLException {
+        PreparedStatement stmt = conn.prepareStatement("INSERT INTO beers VALUES (?, ?)");
+        stmt.setString(1, beerName);
+        stmt.setString(2, beerType);
+        stmt.execute();
     }
-}
+
+    static void deleteBeer(Connection conn, int selectNum) throws SQLException {
+        PreparedStatement stmt = conn.prepareStatement("DELETE from players WHERE ROWNUM = ?");
+        stmt.setInt(1, selectNum);
+        stmt.execute();
+    }
+
+    static ArrayList<Beer> selectBeer(Connection conn) throws SQLException {
+        Statement stmt = conn.createStatement();
+        ResultSet results = stmt.executeQuery("SELECT * FROM beers");
+        ArrayList<Beer> beerArrayList = new ArrayList<>();
+        int tempID = 1;
+        while(results.next()){
+            String beerName = results.getString("name");
+            String beerType = results.getString("type");
+            Beer beer = new Beer(tempID,beerName, beerType);
+            beerArrayList.add(beer);
+            tempID++;
+        }
+        return beerArrayList;
+    }
+
+    static void updateBeer(Connection conn, String beerName, String beerType, int selectNum) throws SQLException {
+        PreparedStatement stmt = conn.prepareStatement("UPDATE beers SET name = ? AND type = ? WHERE ROWNUM = ?");
+        stmt.setString(1, beerName);
+        stmt.setString(2, beerType);
+        stmt.setInt(3, selectNum);
+        stmt.execute();
+    }
+
+
+}//End of Main Class

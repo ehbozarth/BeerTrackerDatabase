@@ -14,7 +14,12 @@ Welcome, {{username}}!
 </form>
 <form action="delete-beer" method="post">
     <input type="number" placeholder="Beer #" name="beerid"/>
-    <button type="submit">Delete</button>
+    <button type="submit">Delete Beer</button>
+</form>
+
+<form action="edit-beer" method="post">
+    <input type="number" placeholder="Beer #" name="beerid"/>
+    <button type="submit">Edit Beer</button>
 </form>
 {{#beers}}
 {{id}}. {{name}} - {{type}}<br>

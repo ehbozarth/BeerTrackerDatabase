@@ -10,10 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 
-/*
-ROWNUM does not work fully
-Will address issue next day in class i.e. November 3rd, 2015
- */
 public class Main {
 
     public static void main(String[] args) throws SQLException {

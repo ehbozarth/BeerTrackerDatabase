@@ -16,7 +16,7 @@ public class Main {
 
         Connection conn = DriverManager.getConnection("jdbc:h2:./main");
         Statement stmt = conn.createStatement();
-        stmt.execute("CREATE TABLE IF NOT EXISTS beers (name VARCHAR, type VARCHAR)");
+        stmt.execute("CREATE TABLE IF NOT EXISTS beers (id IDENTITY, name VARCHAR, type VARCHAR)");
 
         Spark.get(
                 "/",
@@ -29,7 +29,7 @@ public class Main {
                     }
                     HashMap m = new HashMap();
                     m.put("username", username);
-                    m.put("beers", beers);
+                    m.put("beers", beers);//m.put("beers", selectBeer(conn));
                     return new ModelAndView(m, "logged-in.html");
                 }),
                 new MustacheTemplateEngine()
@@ -76,15 +76,13 @@ public class Main {
         Spark.post(
                 "/edit-beer",
                 ((request, response) -> {
-                    String editBeer = request.queryParams("beerid");
+                    String beerid = request.queryParams("beerid");
+                    String beerName = request.queryParams("beername");
+                    String beerType = request.queryParams("beertype");
                     try {
-                        PreparedStatement stmt2 = conn.prepareStatement("UPDATE beers SET name = ? AND type = ? WHERE ROWNUM = ?");
-                        String beerName = request.queryParams("beername");
-                        String beerType = request.queryParams("beertype");
-                        int beerNum = Integer.valueOf(editBeer);
-                        updateBeer(conn,beerName, beerType, beerNum );
-                        stmt2.execute();
-                    } catch (Exception e){
+                        int beerNum = Integer.valueOf(beerid);
+                        updateBeer(conn, beerName, beerType, beerNum);
+                    } catch (Exception e) {
 
                     }
                     response.redirect("/");
@@ -92,18 +90,18 @@ public class Main {
                 })
         );//End of Spark.post() "/edit-beer"
 
-        conn.close();
+
     }//End of Main Method
 
     static void insertBeer(Connection conn, String beerName, String beerType) throws SQLException {
-        PreparedStatement stmt = conn.prepareStatement("INSERT INTO beers VALUES (?, ?)");
+        PreparedStatement stmt = conn.prepareStatement("INSERT INTO beers VALUES (NULL,?, ?)");
         stmt.setString(1, beerName);
         stmt.setString(2, beerType);
         stmt.execute();
     }//End of insertBeer Method
 
     static void deleteBeer(Connection conn, int selectNum) throws SQLException {
-        PreparedStatement stmt = conn.prepareStatement("DELETE from players WHERE ROWNUM = ?");
+        PreparedStatement stmt = conn.prepareStatement("DELETE FROM beers WHERE id = ?");
         stmt.setInt(1, selectNum);
         stmt.execute();
     }//End of deleteBeer Method
@@ -112,23 +110,23 @@ public class Main {
         Statement stmt = conn.createStatement();
         ResultSet results = stmt.executeQuery("SELECT * FROM beers");
         ArrayList<Beer> beerArrayList = new ArrayList<>();
-        int tempID = 1;
         while(results.next()){
+            int beerId = results.getInt("id");
             String beerName = results.getString("name");
             String beerType = results.getString("type");
-            Beer beer = new Beer(tempID,beerName, beerType);
+            Beer beer = new Beer(beerId,beerName, beerType);
             beerArrayList.add(beer);
-            tempID++;
         }
         return beerArrayList;
     }//End of selectBeer Method
 
     static void updateBeer(Connection conn, String beerName, String beerType, int selectNum) throws SQLException {
-        PreparedStatement stmt = conn.prepareStatement("UPDATE beers SET name = ? AND type = ? WHERE ROWNUM = ?");
+        PreparedStatement stmt = conn.prepareStatement("UPDATE beers SET name = ?, type = ? WHERE id = ?");
         stmt.setString(1, beerName);
         stmt.setString(2, beerType);
         stmt.setInt(3, selectNum);
         stmt.execute();
     }//End of updateBeer Method
+
 
 }//End of Main Class
